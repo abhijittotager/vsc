@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monaco Editor with Python (via Pyodide)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #editor {
+      height: 600px;
+      border: 1px solid #ddd;
+      margin-top: 20px;
+    }
+
+    #output {
+      white-space: pre-wrap;
+      background: #f1f1f1;
+      padding: 1em;
+      margin-top: 1em;
+      border-radius: 5px;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs/loader.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h1 class="mt-4">Monaco Editor + Pyodide Python Runtime</h1>
+
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <label for="languageSelect">Select Language:</label>
+        <select class="form-select" id="languageSelect">
+          <option value="javascript">JavaScript</option>
+          <option value="css">CSS</option>
+          <option value="html">HTML</option>
+          <option value="json">JSON</option>
+          <option value="python" selected>Python</option>
+          <option value="java">Java</option>
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label for="themeSelect">Select Theme:</label>
+        <select class="form-select" id="themeSelect">
+          <option value="vs-light">Light</option>
+          <option value="vs-dark" selected>Dark</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-success mb-3" id="runBtn">Run Code</button>
+    <div id="editor"></div>
+
+    <h4 class="mt-4">Output:</h4>
+    <div id="output"></div>
+  </div>
+
+  <script>
+    let editor, pyodide;
+
+    // Load Pyodide
+    async function loadPyodideAndPackages() {
+      pyodide = await loadPyodide();
+      console.log("✅ Pyodide loaded");
+    }
+    loadPyodideAndPackages();
+
+    // Load Monaco
+    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs' } });
+    require(['vs/editor/editor.main'], function () {
+      editor = monaco.editor.create(document.getElementById('editor'), {
+        value: `# Write your Python code below\nprint("Hello from Python!")`,
+        language: 'python',
+        theme: 'vs-dark',
+        automaticLayout: true,
+        minimap: { enabled: true },
+        lineNumbers: 'on',
+        folding: true,
+        wordWrap: 'on',
+      });
+
+      // Language change
+      document.getElementById('languageSelect').addEventListener('change', function () {
+        const lang = this.value;
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+      });
+
+      // Theme change
+      document.getElementById('themeSelect').addEventListener('change', function () {
+        const theme = this.value;
+        monaco.editor.setTheme(theme);
+      });
+    });
+
+    // Run Code Button
+    document.getElementById("runBtn").addEventListener("click", async () => {
+      const code = editor.getValue();
+      const lang = document.getElementById("languageSelect").value;
+      const outputEl = document.getElementById("output");
+
+      if (lang !== "python") {
+        outputEl.textContent = "⚠️ Only Python execution is supported via Pyodide.";
+        return;
+      }
+
+      try {
+        let result = await pyodide.runPythonAsync(code);
+        outputEl.textContent = result !== undefined ? result.toString() : "✅ Code executed with no output.";
+      } catch (err) {
+        outputEl.textContent = `❌ Error:\n${err}`;
+      }
+    });
+  </script>
+</body>
+
+</html>
