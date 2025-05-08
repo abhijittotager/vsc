@@ -51,23 +51,23 @@
       </div>
     </div>
 
-    <button class="btn btn-success mb-3" id="runBtn">Run Code</button>
+    
     <div id="editor"></div>
 
-    <h4 class="mt-4">Output:</h4>
+    <h4 class="mt-4"></h4>
     <div id="output"></div>
   </div>
 
   <script>
     let editor, pyodide;
-
+  
     // Load Pyodide
     async function loadPyodideAndPackages() {
       pyodide = await loadPyodide();
       console.log("✅ Pyodide loaded");
     }
     loadPyodideAndPackages();
-
+  
     // Load Monaco
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.34.0/min/vs' } });
     require(['vs/editor/editor.main'], function () {
@@ -81,39 +81,52 @@
         folding: true,
         wordWrap: 'on',
       });
-
+  
+      // Java IntelliSense Provider (basic)
+      monaco.languages.registerCompletionItemProvider('java', {
+        provideCompletionItems: () => {
+          return {
+            suggestions: [
+              {
+                label: 'main',
+                kind: monaco.languages.CompletionItemKind.Function,
+                insertText: 'public static void main(String[] args) {\n\t$0\n}',
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                documentation: 'Main method entry point'
+              },
+              {
+                label: 'System.out.println',
+                kind: monaco.languages.CompletionItemKind.Method,
+                insertText: 'System.out.println("$0");',
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                documentation: 'Print to standard output'
+              },
+              {
+                label: 'class',
+                kind: monaco.languages.CompletionItemKind.Keyword,
+                insertText: 'class ${1:ClassName} {\n\t$0\n}',
+                insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                documentation: 'Define a new class'
+              }
+            ]
+          };
+        }
+      });
+  
       // Language change
       document.getElementById('languageSelect').addEventListener('change', function () {
         const lang = this.value;
         monaco.editor.setModelLanguage(editor.getModel(), lang);
       });
-
+  
       // Theme change
       document.getElementById('themeSelect').addEventListener('change', function () {
         const theme = this.value;
         monaco.editor.setTheme(theme);
       });
     });
-
-    // Run Code Button
-    document.getElementById("runBtn").addEventListener("click", async () => {
-      const code = editor.getValue();
-      const lang = document.getElementById("languageSelect").value;
-      const outputEl = document.getElementById("output");
-
-      if (lang !== "python") {
-        outputEl.textContent = "⚠️ Only Python execution is supported via Pyodide.";
-        return;
-      }
-
-      try {
-        let result = await pyodide.runPythonAsync(code);
-        outputEl.textContent = result !== undefined ? result.toString() : "✅ Code executed with no output.";
-      } catch (err) {
-        outputEl.textContent = `❌ Error:\n${err}`;
-      }
-    });
   </script>
+  
 </body>
 
 </html>
